@@ -19,6 +19,8 @@ import tf_util
 import gym
 import load_policy
 import model
+import matplotlib.pyplot as plt
+
 
 def main():
     import argparse
@@ -27,7 +29,7 @@ def main():
     parser.add_argument('envname', type=str)
     parser.add_argument('--render', action='store_true')
     parser.add_argument("--max_timesteps", type=int)
-    parser.add_argument('--num_rollouts', type=int, default=20,
+    parser.add_argument('--num_rollouts', type=int, default=5,
                         help='Number of expert roll outs')
     args = parser.parse_args()
 
@@ -45,6 +47,7 @@ def main():
         returns = []
         observations = []
         actions = []
+        reward_record = []
 
         # Stack expert's observation and action, check the expert's reward, demonstratioon when render option is true
         # Not using the demonstartion data, but using the experte's weight from saved file
@@ -59,6 +62,7 @@ def main():
                 observations.append(obs) # obs = (11,)
                 actions.append(action) 
                 obs, r, done, _ = env.step(action)
+                reward_record.append(r)
                 totalr += r
                 steps += 1
                 if args.render:
@@ -68,7 +72,13 @@ def main():
                 if steps >= max_steps:
                     break
             returns.append(totalr)
-
+            
+            if i is 0:
+                plt.title("Expert: " + args.envname)
+                plt.plot(reward_record)
+                plt.show()
+        plt.close()
+            
         print('returns', returns)
         print('mean return', np.mean(returns))
         print('std of return', np.std(returns))
@@ -89,18 +99,22 @@ def main():
         print('Model training start..!')
         our_model.train() 
 
+
+        
         for i in range(5):
             print('iter', i)
             obs = env.reset()
             done = False
             totalr = 0.
             steps = 0
+            reward_record =[]
 
             while not done:
                 action = our_model.sample(obs) # action = (3,)
                 obs, r, done, _ = env.step(action)
                 totalr += r
-                steps += 1
+                reward_record.append(r)
+                steps += 1  
 
                 if args.render:
                     env.render()
@@ -111,6 +125,12 @@ def main():
                     break
 
             print('Behavior cloning reward: ', totalr)
+
+            if i is 0:
+                plt.title("Behavior Cloning: " + args.envname)
+                plt.plot(reward_record)
+                plt.show()
+        plt.close()
 
 if __name__ == '__main__':
     main()

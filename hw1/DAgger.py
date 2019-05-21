@@ -5,6 +5,7 @@ import tf_util
 import gym
 import load_policy
 import model
+import matplotlib.pyplot as plt
 
 def main():
     import argparse
@@ -13,9 +14,9 @@ def main():
     parser.add_argument('envname', type=str)
     parser.add_argument('--render', action='store_true')
     parser.add_argument("--max_timesteps", type=int)
-    parser.add_argument('--num_rollouts', type=int, default=20,
+    parser.add_argument('--num_rollouts', type=int, default=5,
                         help='Number of expert roll outs')
-    parser.add_argument('--DAgger_iter', type = int, default=5)
+    parser.add_argument('--DAgger_iter', type = int, default=20)
     args = parser.parse_args()
 
     print('loading and building expert policy')
@@ -72,20 +73,32 @@ def main():
         for i in range(args.DAgger_iter):
             new_obs = []
             new_actions = []
+            reward_record = []
             obs = env.reset()
+            totalr = 0.
             done = False
             while not done:
                 action = our_model.sample(obs)
-                obs, _, done, _ = env.step(action)
+                obs, r, done, _ = env.step(action)
                 if args.render:
                     env.render()
                 corrected_action = policy_fn(obs[None, :])
                 new_obs.append(obs)
                 new_actions.append(corrected_action)
+                totalr += r
+                reward_record.append(r)
+            print('totalr', totalr)
 
+                
             training_obs = np.concatenate((training_obs, obs[None, :]), axis = 0)
             training_actions = np.concatenate((training_actions, corrected_action[None, :]), axis = 0)
             our_model.train(train_data = np.array(new_obs), test_data = np.array(new_actions), number = i)
 
+            if (i is 0) or (i is (args.DAgger_iter-1)):
+                plt.title("Dagger: " + args.envname)
+                plt.plot(reward_record)
+                plt.show()
+        plt.close()
+        
 if __name__ == '__main__':
     main()

@@ -63,6 +63,7 @@ class Model(object):
         init_op = tf.global_variables_initializer()
         self.sess.run(init_op)
 
+
         for epoch in range(epochs):
             for idx in range(batch_idxs):
                 batch_train = train_data[idx * self.batch_size : (idx + 1) * self.batch_size]
@@ -73,7 +74,7 @@ class Model(object):
                 if idx % 20 == 0:
                     loss_value = self.sess.run(self.loss_summary, feed_dict = feed_train)
                     writer.add_summary(loss_value, epoch * batch_idxs + idx)
-
+        
         saver.save(self.sess, self.name + "/behavior_cloning_model")
 
     def sample(self, input):
